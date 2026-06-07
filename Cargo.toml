@@ -1,0 +1,28 @@
+[package]
+name = "rust-simple-restapi-templ"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+argon2 = "0.5.3"
+async-trait = "0.1.89"
+axum = "0.8.9"
+chrono = { version = "0.4.45", features = ["serde"] }
+config = "0.15.23"
+dotenvy = "0.15.7"
+jsonwebtoken = "10.4.0"
+redis = { version = "1.2.2", features = ["tokio-comp", "connection-manager"] }
+sea-orm = { version = "~2.0.0-rc", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "with-json"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+thiserror = "2.0.18"
+tokio = { version = "1.52.3", features = ["full"] }
+tower = "0.5.3"
+tower-http = { version = "0.6.11", features = ["trace", "cors", "timeout", "compression-full", "request-id"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+utoipa = { version = "5.5.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+uuid = { version = "1.23.2", features = ["serde", "v4"] }
+validator = { version = "0.20.0", features = ["derive"] }
