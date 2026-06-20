@@ -1,109 +1,261 @@
 # Rust API Service Template
 
-A production-oriented Rust API service template built with **Axum**, **SeaORM**, **PostgreSQL**, **Redis**, **Authentication**, and **Flyway-based raw SQL migrations**.
+Rust API service template built with **Axum**, **Tokio**, **Tower middleware**, **Diesel Async**, **PostgreSQL**, **Flyway raw SQL migrations**, and a modular service/repository layout.
 
-This template is designed for teams that want a backend service structure that is:
-
-- Simple to understand
-- Easy to maintain
-- Explicit in dependency wiring
-- Production-friendly
-- Modular like framework-based services, but still Rust-native
-- Flexible enough for real-world API development
+This repository is currently a foundation template. Health and user modules are implemented at a basic level; authentication, token storage, pagination helpers, and real integration tests are still planned.
 
 ---
 
-## 1. Overview
-
-This project provides a clean foundation for building API services in Rust.
-
-The architecture follows a lightweight modular approach inspired by framework-style modules:
-
-- `ApiModule` convention
-- Explicit `AppState`
-- Constructor-based dependency injection
-- Service and repository traits
-- SeaORM for runtime database access
-- Flyway for database migrations outside the Rust application
-
-The Rust application does **not** run database migrations by itself.  
-Database schema changes are managed independently through raw SQL migration files and executed by Flyway.
-
----
-
-## 2. Tech Stack
+## Current Stack
 
 | Layer | Technology |
 |---|---|
-| HTTP Framework | Axum |
-| Async Runtime | Tokio |
+| HTTP framework | Axum |
+| Async runtime | Tokio |
 | Middleware | Tower / tower-http |
-| ORM | SeaORM |
+| ORM / query layer | Diesel + diesel-async |
 | Database | PostgreSQL |
-| Cache / Session Store | Redis |
-| Authentication | JWT Access Token + Refresh Token |
-| Password Hashing | Argon2 |
-| Migration Tool | Flyway |
-| Migration Format | Raw SQL |
-| Logging / Tracing | tracing |
-| OpenAPI | utoipa |
+| Migration tool | Flyway |
+| Migration format | Raw SQL |
+| Cache / session backend target | Valkey, via the Redis protocol |
+| Logging / tracing | tracing + tracing-subscriber |
+| Validation | validator |
 | Containerization | Docker / Docker Compose |
+
+Dependencies for JWT, Argon2, Redis/Valkey, and OpenAPI are already present in `Cargo.toml`, but the auth module and OpenAPI routes are not implemented yet.
 
 ---
 
-## 3. Key Design Decisions
+## Architecture
 
-### 3.1 SeaORM for Runtime Database Access
+The codebase follows an explicit modular structure:
 
-SeaORM is used for application runtime data access, including:
+```txt
+src/
+├── common/
+├── core/
+│   ├── app.rs
+│   ├── app_state.rs
+│   ├── config.rs
+│   ├── error.rs
+│   ├── response.rs
+│   └── telemetry.rs
+├── infra/
+│   ├── diesel/
+│   └── valkey/
+├── modules/
+│   ├── health/
+│   └── user/
+├── schema.rs
+├── lib.rs
+└── main.rs
+```
 
-- Entity modeling
-- CRUD operations
-- Query building
-- Repository implementation
-- Relation handling
+Main conventions:
 
-This keeps application code clean and easier to maintain compared to writing raw SQL for every query.
+- `AppState` stores shared dependencies explicitly.
+- `ApiModule` provides a common route convention for modules.
+- Feature modules own their handlers, DTOs, service logic, and repository contract.
+- Diesel Async is used for runtime PostgreSQL access.
+- Flyway owns schema migration; the Rust app does not run migrations itself.
+- Errors are centralized through `AppError` and converted into JSON error responses.
 
-### 3.2 Raw SQL Migration with Flyway
+---
 
-Database migrations are handled by Flyway using plain SQL files.
+## Environment
 
-This provides:
+Create a local `.env` from the example:
 
-- Clear schema history
-- Easy review in pull requests
-- Better PostgreSQL-specific control
-- No dependency on Rust migration crates
-- Safer production deployment flow
+```sh
+cp .env.example .env
+```
 
-### 3.3 Explicit Dependency Injection
+Important variables:
 
-This template does not use a runtime DI container.
+| Variable | Purpose |
+|---|---|
+| `APP_ENV` | `local`, `development`, `staging`, or `production` |
+| `APP_HOST` / `APP_PORT` | HTTP bind address |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_MAX_CONNECTIONS` | Diesel Async pool size |
+| `VALKEY_URL` | Valkey/Redis connection string |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Required by config validation, although auth is not implemented yet |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+| `RUST_LOG` | tracing filter |
 
-Instead, dependencies are wired explicitly through constructors and stored in `AppState`.
+In `production`, JWT secrets must be at least 32 characters, must be different from each other, and must not contain the placeholder value `change-me`.
 
-This keeps the architecture:
+---
 
-- Easy to debug
-- Compile-time friendly
-- Transparent
-- Suitable for long-term maintenance
+## Local Development
 
-### 3.4 Module Convention
+Start PostgreSQL and Valkey:
 
-Each feature module owns its own:
+```sh
+docker compose up -d postgres valkey
+```
 
-- Routes
-- Handlers
-- DTOs
-- Service logic
-- Repository contract
+Run migrations:
+
+```sh
+docker compose run --rm migrate
+```
+
+Run the API locally:
+
+```sh
+cargo run
+```
+
+The default local API URL is:
+
+```txt
+http://localhost:8088/api/v1
+```
+
+Check health:
+
+```sh
+curl http://localhost:8088/api/v1/health/live
+curl http://localhost:8088/api/v1/health/ready
+```
+
+Run tests:
+
+```sh
+cargo test
+```
+
+Current note: `cargo test` passes, but the repository does not contain real unit or integration tests yet.
+
+---
+
+## Docker Compose
+
+Build and run the full stack:
+
+```sh
+docker compose up --build
+```
+
+The Compose stack includes:
+
+- PostgreSQL
+- Valkey
+- Flyway migration job
+- API service
+
+By default, the API container uses `APP_ENV=production`. Provide non-placeholder JWT secrets before running the API container in production mode, or set `APP_ENV=local` for local Compose experiments.
 
 Example:
 
+```sh
+APP_ENV=local docker compose up --build api
+```
+
+The default Compose API URL is:
+
 ```txt
-modules/
-├── auth/
-├── user/
-└── health/
+http://localhost:8089/api/v1
+```
+
+---
+
+## Database And Schema
+
+Migrations live in `migrations/` and are executed by Flyway.
+
+Current migration files:
+
+- `V001__create_users.sql`
+
+Current schema characteristics:
+
+- `users.id` is `BIGINT GENERATED BY DEFAULT AS IDENTITY`.
+- `users.email` is unique.
+- `users.status` is constrained to `ACTIVE` or `DISABLED`.
+- Soft delete timestamp exists via `deleted_at`.
+
+Regenerate Diesel schema after migration changes:
+
+```sh
+diesel print-schema > src/schema.rs
+```
+
+---
+
+## Implementation Progress
+
+Legend:
+
+- `[x]` implemented
+- `[~]` partially implemented
+- `[ ]` not implemented
+
+### Phase 1 - Foundation
+
+- [x] Init cargo project
+- [x] Add `Cargo.toml`
+- [x] Add `docker-compose.yml`
+- [x] Add `flyway.conf`
+- [x] Add `diesel.toml`
+- [x] Add `.env.example`
+- [~] Add migrations
+- [x] Generate `src/schema.rs`
+
+### Phase 2 - Bootstrap
+
+- [x] `config.rs`
+- [x] `telemetry.rs`
+- [x] Database pool
+- [~] Redis/Valkey client - client and ping exist, but it is not wired into `AppState`
+- [x] `app_state.rs`
+- [~] `shutdown.rs` - graceful shutdown exists in `main.rs`, but not as a separate module
+- [~] `app.rs` `run` / `build_router` / `build_state` - `build_router` and `build_state` exist; `run` is still handled in `main.rs`
+
+### Phase 3 - Shared
+
+- [x] `AppError`
+- [x] `ErrorResponse`
+- [x] `ApiResponse`
+- [~] Validation helper - request validation exists inline in user handler; `common/validator.rs` is empty
+- [ ] Pagination helper
+
+### Phase 4 - Health
+
+- [x] `ApiModule` trait
+- [x] `HealthModule` route
+- [x] `live` endpoint
+- [x] `ready` endpoint
+
+### Phase 5 - User
+
+- [x] User model
+- [x] User DTO
+- [x] `UserRepository` trait
+- [x] `DieselUserRepository` / `DbUserRepository`
+- [x] `UserService`
+- [x] User handler
+- [x] User routes
+
+### Phase 6 - Auth
+
+- [ ] `RegisterRequest` / `LoginRequest` DTO
+- [ ] Argon2 password hashing implementation
+- [ ] `JwtService`
+- [ ] `TokenStore` trait
+- [ ] `RedisTokenStore`
+- [ ] `AuthService`
+- [ ] Auth handlers
+- [ ] `CurrentUser` extractor
+- [ ] Auth routes
+
+### Phase 7 - Tests
+
+- [ ] Password unit test
+- [ ] JWT unit test
+- [ ] Register integration test
+- [ ] Login integration test
+- [ ] Refresh integration test
+- [ ] Logout integration test
+- [ ] Protected endpoint test
