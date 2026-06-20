@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: rust_api_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: rust_api_valkey
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: flyway/flyway:11-alpine
+    container_name: rust_api_flyway
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/flyway/sql:ro
+      - ./flyway.conf:/flyway/conf/flyway.conf:ro
+    command:
+      - -configFiles=/flyway/conf/flyway.conf
+      - migrate
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rust_api_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_HOST: 0.0.0.0
+      APP_PORT: ${APP_PORT:-8089}
+      APP_REQUEST_TIMEOUT_SECONDS: ${APP_REQUEST_TIMEOUT_SECONDS:-30}
+      APP_BODY_LIMIT_MB: ${APP_BODY_LIMIT_MB:-2}
+
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+
+      RUST_LOG: ${RUST_LOG:-info,tower_http=info,diesel=warn}
+
+      DATABASE_URL: ${DATABASE_URL:-postgres://app:app@postgres:5432/app_db}
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
+
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379/0}
+
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret-at-least-32-chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret-at-least-32-chars}
+      JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+      JWT_REFRESH_TTL_SECONDS: ${JWT_REFRESH_TTL_SECONDS:-2592000}
+    ports:
+      - "${APP_PORT:-8089}:8089"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8089/api/v1/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  valkey-data:

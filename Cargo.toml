@@ -9,22 +9,28 @@ argon2 = "0.5.3"
 async-trait = "0.1.89"
 axum = "0.8.9"
 chrono = { version = "0.4.45", features = ["serde"] }
-config = "0.15.23"
-diesel = "2.3.10"
+config = "0.15.24"
+diesel = { version = "2.3.10", features = ["postgres", "chrono"] }
 diesel-async = { version = "0.9.1", features = ["postgres", "bb8"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "10.4.0"
 rand_core = "0.10.1"
-redis = { version = "1.2.2", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1.2.3", features = ["tokio-comp", "connection-manager"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = ["full"] }
 tower = "0.5.3"
-tower-http = { version = "0.6.11", features = ["trace", "cors", "timeout", "compression-full", "request-id"] }
+tower-http = { version = "0.7.0", features = [
+    "limit",
+    "trace",
+    "cors",
+    "timeout",
+    "compression-full",
+    "request-id",
+] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 utoipa = { version = "5.5.0", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
-uuid = { version = "1.23.2", features = ["serde", "v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
