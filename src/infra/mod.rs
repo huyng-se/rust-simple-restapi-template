@@ -1,2 +1,2 @@
-pub(crate) mod diesel;
-pub(crate) mod valkey;
+pub mod diesel;
+pub mod valkey;
