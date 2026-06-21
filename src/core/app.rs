@@ -10,9 +10,13 @@ use tower_http::{
 
 use crate::{
     core::{app_state::AppState, config::AppConfig, error::AppResult},
-    infra::diesel::connection::init_db_pool,
+    infra::{
+        diesel::connection::init_db_pool,
+        valkey::{connection::init_valkey_connection, token_store::RedisTokenStore},
+    },
     modules::{
         ApiModule,
+        auth::{service::AuthServiceImpl, token::JwtService},
         health::controller::HealthModule,
         user::{controller::UserModule, repository::DbUserRepository, service::UserServiceImpl},
     },
@@ -60,12 +64,24 @@ fn build_cors_layer(config: &AppConfig) -> CorsLayer {
 
 pub async fn build_state(config: &AppConfig) -> AppResult<AppState> {
     let db_pool = init_db_pool(&config.db).await?;
+    let redis_client = init_valkey_connection(&config.valkey).await?;
 
-    let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
+    let jwt_service = JwtService::new(config.jwt.clone());
+
+    let token_store = Arc::new(RedisTokenStore::new(redis_client));
+    let user_repo = Arc::new(DbUserRepository::new(db_pool.clone())); // TODO: fix clone later
+
+    let auth_service = Arc::new(AuthServiceImpl::new(
+        user_repo.clone(),
+        token_store,
+        jwt_service,
+    ));
+
     let user_service = Arc::new(UserServiceImpl::new(user_repo));
 
     Ok(AppState {
         db_pool,
+        auth_service,
         user_service,
     })
 }

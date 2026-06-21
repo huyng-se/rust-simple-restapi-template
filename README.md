@@ -2,8 +2,6 @@
 
 Rust API service template built with **Axum**, **Tokio**, **Tower middleware**, **Diesel Async**, **PostgreSQL**, **Flyway raw SQL migrations**, and a modular service/repository layout.
 
-This repository is currently a foundation template. Health and user modules are implemented at a basic level; authentication, token storage, pagination helpers, and real integration tests are still planned.
-
 ---
 
 ## Current Stack
@@ -21,8 +19,6 @@ This repository is currently a foundation template. Health and user modules are 
 | Logging / tracing | tracing + tracing-subscriber |
 | Validation | validator |
 | Containerization | Docker / Docker Compose |
-
-Dependencies for JWT, Argon2, Redis/Valkey, and OpenAPI are already present in `Cargo.toml`, but the auth module and OpenAPI routes are not implemented yet.
 
 ---
 
@@ -233,7 +229,7 @@ Legend:
 - [x] User model
 - [x] User DTO
 - [x] `UserRepository` trait
-- [x] `DieselUserRepository` / `DbUserRepository`
+- [x] `DbUserRepository`
 - [x] `UserService`
 - [x] User handler
 - [x] User routes

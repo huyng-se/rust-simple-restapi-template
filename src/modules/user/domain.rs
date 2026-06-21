@@ -26,7 +26,7 @@ pub struct NewUserPayload {
     pub email: String,
     pub password: String,
     pub first_name: String,
-    pub last_name: String,
+    pub last_name: Option<String>,
     pub status: String,
 }
 
@@ -36,7 +36,6 @@ pub struct NewUserPayload {
 pub struct CreateUserRequest {
     #[validate(email)]
     pub email: String,
-
     #[validate(length(min = 1, max = 100))]
     pub name: String,
 }
