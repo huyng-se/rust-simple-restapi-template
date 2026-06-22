@@ -1,7 +1,6 @@
 use axum::{
     Json, Router,
     extract::State,
-    http::HeaderMap,
     routing::{get, post},
 };
 use validator::Validate;
@@ -18,7 +17,7 @@ use crate::{
                 AuthResponse, LoginRequest, LogoutRequest, MessageResponse, RefreshTokenRequest,
                 RegisterRequest,
             },
-            extractor::{self, CurrentUser},
+            extractor::AuthContext,
         },
         user::domain::UserResponse,
     },
@@ -27,11 +26,15 @@ use crate::{
 pub struct AuthModule;
 
 impl AuthModule {
-    pub fn routes() -> Router<AppState> {
+    pub fn public_routes() -> Router<AppState> {
         Router::new()
             .route("/register", post(register))
             .route("/login", post(login))
             .route("/refresh", post(refresh))
+    }
+
+    pub fn protected_routes() -> Router<AppState> {
+        Router::new()
             .route("/logout", post(logout))
             .route("/me", get(me))
     }
@@ -82,7 +85,7 @@ pub async fn refresh(
 
 pub async fn logout(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    auth: AuthContext,
     Json(req): Json<LogoutRequest>,
 ) -> AppResult<Json<ApiResponse<MessageResponse>>> {
     if req.refresh_token.trim().is_empty() {
@@ -91,21 +94,19 @@ pub async fn logout(
         ));
     }
 
-    let access_token = extractor::extract_bearer_token(&headers)?;
-
     state
         .auth_service
-        .logout(access_token, req.refresh_token)
+        .logout(auth.access_token, req.refresh_token)
         .await?;
 
     Ok(Json(ApiResponse::new(MessageResponse {
-        message: "logged out successfully".to_string(),
+        message: "Logged out successfully.".to_string(),
     })))
 }
 
 pub async fn me(
     State(state): State<AppState>,
-    current_user: CurrentUser,
+    current_user: AuthContext,
 ) -> AppResult<Json<ApiResponse<UserResponse>>> {
     let user_id = current_user
         .user_id

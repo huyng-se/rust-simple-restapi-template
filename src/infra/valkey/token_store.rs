@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use redis::AsyncCommands;
 
-use crate::core::error::AppResult;
+use crate::core::error::{AppError, AppResult};
 
 #[async_trait]
 pub trait TokenStore {
@@ -42,7 +42,16 @@ impl TokenStore for RedisTokenStore {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = Self::refresh_key(user_id, token_id);
 
-        conn.set_ex::<_, _, ()>(key, "1", ttl_sec as u64).await?;
+        conn.set_ex::<_, _, ()>(key, "1", ttl_sec as u64)
+            .await
+            .map_err(|err| {
+                tracing::error!(
+                    error = ?err,
+                    "failed to save refresh token"
+                );
+
+                AppError::Redis(err)
+            })?;
 
         Ok(())
     }
@@ -51,7 +60,14 @@ impl TokenStore for RedisTokenStore {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = Self::refresh_key(user_id, token_id);
 
-        let exists: bool = conn.exists(key).await?;
+        let exists: bool = conn.exists(key).await.map_err(|err| {
+            tracing::error!(
+                error = ?err,
+                "failed to check is refresh token valid"
+            );
+
+            AppError::Redis(err)
+        })?;
 
         Ok(exists)
     }
@@ -60,7 +76,14 @@ impl TokenStore for RedisTokenStore {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = Self::refresh_key(user_id, token_id);
 
-        conn.del::<_, ()>(key).await?;
+        conn.del::<_, ()>(key).await.map_err(|err| {
+            tracing::error!(
+                error = ?err,
+                "failed to revoke refresh token"
+            );
+
+            AppError::Redis(err)
+        })?;
 
         Ok(())
     }
@@ -69,7 +92,16 @@ impl TokenStore for RedisTokenStore {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = Self::blacklist_key(token_id);
 
-        conn.set_ex::<_, _, ()>(key, "1", ttl_sec as u64).await?;
+        conn.set_ex::<_, _, ()>(key, "1", ttl_sec as u64)
+            .await
+            .map_err(|err| {
+                tracing::error!(
+                    error = ?err,
+                    "failed to blacklist refresh token"
+                );
+
+                AppError::Redis(err)
+            })?;
 
         Ok(())
     }
@@ -78,7 +110,14 @@ impl TokenStore for RedisTokenStore {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = Self::blacklist_key(token_id);
 
-        let exists: bool = conn.exists(key).await?;
+        let exists: bool = conn.exists(key).await.map_err(|err| {
+            tracing::error!(
+                error = ?err,
+                "failed to check is access token blacklisted"
+            );
+
+            AppError::Redis(err)
+        })?;
 
         Ok(exists)
     }

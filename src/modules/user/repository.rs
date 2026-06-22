@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    core::error::AppResult,
+    core::error::{self, AppResult},
     infra::diesel::connection::DbPool,
     modules::user::domain::{NewUserPayload, UserModel},
     schema::users,
@@ -43,7 +43,7 @@ impl UserRepository for DbUserRepository {
             .await
             .map_err(|err| {
                 tracing::error!(error = %err, "failed to insert user record");
-                err
+                error::map_diesel_error(err)
             })?;
 
         Ok(created)
@@ -63,7 +63,7 @@ impl UserRepository for DbUserRepository {
             .optional()
             .map_err(|err| {
                 tracing::error!(user_id, error = %err, "failed to find user by id");
-                err
+                error::map_diesel_error(err)
             })?;
 
         Ok(result)
@@ -83,7 +83,7 @@ impl UserRepository for DbUserRepository {
             .optional()
             .map_err(|err| {
                 tracing::error!(email, error = %err, "failed to find user by email");
-                err
+                error::map_diesel_error(err)
             })?;
 
         Ok(result)
@@ -101,7 +101,7 @@ impl UserRepository for DbUserRepository {
             .await
             .map_err(|err| {
                 tracing::error!(error = %err, "failed to list users");
-                err
+                error::map_diesel_error(err)
             })?;
 
         Ok(results)
