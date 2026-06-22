@@ -35,7 +35,7 @@ impl UserService for UserServiceImpl {
             email: req.email,
             password: "".to_string(),
             first_name: req.name,
-            last_name: "user".to_string(),
+            last_name: None,
             status: "ACTIVE".to_string(),
         };
         let user = self.repo.create(new_user).await?;

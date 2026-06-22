@@ -1,40 +1,11 @@
 @baseUrl = http://localhost:8088/api/v1
-@userId = 2
-
-### List users
-GET {{baseUrl}}/users
-Accept: application/json
-
-### Create user
-POST {{baseUrl}}/users
-Accept: application/json
-Content-Type: application/json
-
-{
-  "email": "test.user@example.com",
-  "name": "Test User"
-}
+@userId = 1
+@missingUserId = 999999
 
 ### Get user by id
 GET {{baseUrl}}/users/{{userId}}
 Accept: application/json
 
-### Create user - invalid email
-POST {{baseUrl}}/users
+### Get user by id - not found
+GET {{baseUrl}}/users/{{missingUserId}}
 Accept: application/json
-Content-Type: application/json
-
-{
-  "email": "invalid-email",
-  "name": "Test User"
-}
-
-### Create user - empty name
-POST {{baseUrl}}/users
-Accept: application/json
-Content-Type: application/json
-
-{
-  "email": "empty.name@example.com",
-  "name": ""
-}
