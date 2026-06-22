@@ -1,31 +1,53 @@
-use axum::{
-    Router,
-    http::{HeaderValue, StatusCode},
-};
-use std::{sync::Arc, time::Duration};
-use tower_http::{
-    compression::CompressionLayer, cors::CorsLayer, limit::RequestBodyLimitLayer,
-    timeout::TimeoutLayer, trace::TraceLayer,
-};
-
 use crate::{
-    core::{app_state::AppState, config::AppConfig, error::AppResult},
+    core::{
+        app_state::AppState, config::AppConfig, error::AppResult, logging::log_request_middleware,
+        request_context::request_context_middleware,
+    },
     infra::{
         diesel::connection::init_db_pool,
         valkey::{connection::init_valkey_connection, token_store::RedisTokenStore},
     },
     modules::{
-        auth::{controller::AuthModule, service::AuthServiceImpl, token::JwtService},
+        auth::{
+            controller::AuthModule,
+            guard::{require_admin, require_auth},
+            service::AuthServiceImpl,
+            token::JwtService,
+        },
         health::controller::HealthModule,
         user::{controller::UserModule, repository::DbUserRepository, service::UserServiceImpl},
     },
 };
+use axum::{
+    Router,
+    http::{HeaderValue, StatusCode},
+    middleware,
+};
+use std::{sync::Arc, time::Duration};
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, limit::RequestBodyLimitLayer,
+    timeout::TimeoutLayer,
+};
 
+// TODO: fix clone later
 pub fn build_router(state: AppState, config: &AppConfig) -> Router {
-    Router::new()
+    let public_routes = Router::new()
         .nest("/api/v1", HealthModule::routes())
-        .nest("/api/v1", AuthModule::routes())
+        .nest("/api/v1", AuthModule::public_routes());
+
+    let protected_routes = Router::new()
+        .nest("/api/v1", AuthModule::protected_routes())
         .nest("/api/v1", UserModule::routes())
+        .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
+
+    let admin_routes = Router::new()
+        .nest("/api/v1", UserModule::admin_routes())
+        .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
+
+    Router::new()
+        .merge(public_routes)
+        .merge(protected_routes)
+        .merge(admin_routes)
         .layer(CompressionLayer::new())
         .layer(RequestBodyLimitLayer::new(
             config.server.body_limit_mb * 1024 * 1024,
@@ -35,7 +57,8 @@ pub fn build_router(state: AppState, config: &AppConfig) -> Router {
             Duration::from_secs(config.server.request_timeout_s),
         ))
         .layer(build_cors_layer(config))
-        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(log_request_middleware))
+        .layer(middleware::from_fn(request_context_middleware))
         .with_state(state)
 }
 

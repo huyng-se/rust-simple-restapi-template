@@ -1,11 +1,29 @@
 @baseUrl = http://localhost:8088/api/v1
 @userId = 1
 @missingUserId = 999999
+@accessToken = paste-access-token-here
+@adminAccessToken = paste-admin-access-token-here
 
 ### Get user by id
 GET {{baseUrl}}/users/{{userId}}
 Accept: application/json
+Authorization: Bearer {{accessToken}}
 
 ### Get user by id - not found
 GET {{baseUrl}}/users/{{missingUserId}}
 Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### List users - admin only
+GET {{baseUrl}}/admin/users
+Accept: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+### Get user by id - missing token
+GET {{baseUrl}}/users/{{userId}}
+Accept: application/json
+
+### List users - non-admin token
+GET {{baseUrl}}/admin/users
+Accept: application/json
+Authorization: Bearer {{accessToken}}
