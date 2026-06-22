@@ -64,7 +64,7 @@ impl AuthServiceImpl {
     }
 
     fn ensure_user_active(status: &str) -> Result<(), AppError> {
-        if status != "active" {
+        if status != "ACTIVE" {
             return Err(AppError::Forbidden);
         }
 

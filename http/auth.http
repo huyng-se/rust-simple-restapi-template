@@ -1,0 +1,107 @@
+@baseUrl = http://localhost:8088/api/v1
+@email = test.user@example.com
+@password = password123
+@name = Test User
+@accessToken = paste-access-token-here
+@refreshToken = paste-refresh-token-here
+
+### Register
+POST {{baseUrl}}/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "name": "{{name}}"
+}
+
+### Login
+POST {{baseUrl}}/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Refresh access token
+POST {{baseUrl}}/refresh
+Accept: application/json
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Get current user
+GET {{baseUrl}}/me
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### Logout
+POST {{baseUrl}}/logout
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Register - invalid email
+POST {{baseUrl}}/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": "{{password}}",
+  "name": "{{name}}"
+}
+
+### Register - short password
+POST {{baseUrl}}/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "short.password@example.com",
+  "password": "short",
+  "name": "{{name}}"
+}
+
+### Register - empty name
+POST {{baseUrl}}/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "empty.name@example.com",
+  "password": "{{password}}",
+  "name": ""
+}
+
+### Login - invalid password
+POST {{baseUrl}}/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "wrong-password"
+}
+
+### Refresh - empty token
+POST {{baseUrl}}/refresh
+Accept: application/json
+Content-Type: application/json
+
+{
+  "refresh_token": ""
+}
+
+### Me - missing token
+GET {{baseUrl}}/me
+Accept: application/json

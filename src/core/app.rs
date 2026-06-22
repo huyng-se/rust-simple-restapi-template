@@ -15,8 +15,7 @@ use crate::{
         valkey::{connection::init_valkey_connection, token_store::RedisTokenStore},
     },
     modules::{
-        ApiModule,
-        auth::{service::AuthServiceImpl, token::JwtService},
+        auth::{controller::AuthModule, service::AuthServiceImpl, token::JwtService},
         health::controller::HealthModule,
         user::{controller::UserModule, repository::DbUserRepository, service::UserServiceImpl},
     },
@@ -25,6 +24,7 @@ use crate::{
 pub fn build_router(state: AppState, config: &AppConfig) -> Router {
     Router::new()
         .nest("/api/v1", HealthModule::routes())
+        .nest("/api/v1", AuthModule::routes())
         .nest("/api/v1", UserModule::routes())
         .layer(CompressionLayer::new())
         .layer(RequestBodyLimitLayer::new(

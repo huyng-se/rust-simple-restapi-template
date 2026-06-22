@@ -3,15 +3,12 @@ use diesel::select;
 use diesel_async::RunQueryDsl;
 use serde_json::json;
 
-use crate::{
-    core::{app_state::AppState, error::AppResult},
-    modules::ApiModule,
-};
+use crate::core::{app_state::AppState, error::AppResult};
 
 pub struct HealthModule;
 
-impl ApiModule for HealthModule {
-    fn routes() -> Router<AppState> {
+impl HealthModule {
+    pub fn routes() -> Router<AppState> {
         Router::new()
             .route("/health/live", get(live))
             .route("/health/ready", get(ready))
