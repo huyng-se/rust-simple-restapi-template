@@ -24,7 +24,7 @@ pub trait AuthService {
     async fn refresh(&self, refresh_token: String) -> AppResult<AuthResponse>;
     async fn logout(&self, access_token: String, refresh_token: String) -> AppResult<()>;
     async fn me(&self, user_id: i64) -> AppResult<UserResponse>;
-    async fn verify_access_token(&self, token: String) -> AppResult<Claims>;
+    async fn verify_access_token(&self, token: &str) -> AppResult<Claims>;
 }
 
 pub struct AuthServiceImpl {
@@ -230,8 +230,8 @@ impl AuthService for AuthServiceImpl {
         Ok(UserResponse::from(user))
     }
 
-    async fn verify_access_token(&self, token: String) -> AppResult<Claims> {
-        let claims = self.jwt_service.verify_access_token(&token)?;
+    async fn verify_access_token(&self, token: &str) -> AppResult<Claims> {
+        let claims = self.jwt_service.verify_access_token(token)?;
 
         let token_blacklisted = self
             .token_store

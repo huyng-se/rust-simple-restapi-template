@@ -21,10 +21,7 @@ pub async fn require_auth(
     next: Next,
 ) -> AppResult<Response> {
     let token = extract_bearer_token(&req.headers())?;
-    let claims = state
-        .auth_service
-        .verify_access_token(token.clone()) // TODO: fix clone later
-        .await?;
+    let claims = state.auth_service.verify_access_token(&token).await?;
 
     let user_id = claims
         .sub
@@ -47,10 +44,7 @@ pub async fn require_admin(
     next: Next,
 ) -> AppResult<Response> {
     let token = extract_bearer_token(&req.headers())?;
-    let claims = state
-        .auth_service
-        .verify_access_token(token.clone()) // TODO: fix clone later
-        .await?;
+    let claims = state.auth_service.verify_access_token(&token).await?;
 
     if claims.role != "ADMIN" {
         return Err(AppError::Forbidden);

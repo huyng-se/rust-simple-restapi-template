@@ -16,10 +16,10 @@ async fn main() -> AppResult<()> {
 
     telemetry::init_telemetry(&config)?;
 
-    let state = build_state(&config).await?;
-    let app = build_router(state, &config);
-
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
+    let state = build_state(&config.db, &config.valkey, config.jwt).await?;
+    let app = build_router(state, &config.server);
+
     tracing::info!(%addr, "starting http server");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;

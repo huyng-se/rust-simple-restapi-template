@@ -1,6 +1,9 @@
 use crate::{
     core::{
-        app_state::AppState, config::AppConfig, error::AppResult, logging::log_request_middleware,
+        app_state::AppState,
+        config::{DatabaseConfig, JwtConfig, ServerConfig, ValkeyConfig},
+        error::AppResult,
+        logging::log_request_middleware,
         request_context::request_context_middleware,
     },
     infra::{
@@ -29,7 +32,7 @@ use tower_http::{
     timeout::TimeoutLayer,
 };
 
-pub fn build_router(state: AppState, config: &AppConfig) -> Router {
+pub fn build_router(state: AppState, config: &ServerConfig) -> Router {
     let public_routes = Router::new()
         .nest("/api/v1", HealthModule::routes())
         .nest("/api/v1", AuthModule::public_routes());
@@ -49,11 +52,11 @@ pub fn build_router(state: AppState, config: &AppConfig) -> Router {
         .merge(admin_routes)
         .layer(CompressionLayer::new())
         .layer(RequestBodyLimitLayer::new(
-            config.server.body_limit_mb * 1024 * 1024,
+            config.body_limit_mb * 1024 * 1024,
         ))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(config.server.request_timeout_s),
+            Duration::from_secs(config.request_timeout_s),
         ))
         .layer(build_cors_layer(config))
         .layer(middleware::from_fn(log_request_middleware))
@@ -61,9 +64,8 @@ pub fn build_router(state: AppState, config: &AppConfig) -> Router {
         .with_state(state)
 }
 
-fn build_cors_layer(config: &AppConfig) -> CorsLayer {
+fn build_cors_layer(config: &ServerConfig) -> CorsLayer {
     let origins: Vec<HeaderValue> = config
-        .server
         .cors_allowed_origins
         .iter()
         .filter_map(|origin| origin.parse::<HeaderValue>().ok())
@@ -84,12 +86,17 @@ fn build_cors_layer(config: &AppConfig) -> CorsLayer {
         ])
 }
 
-pub async fn build_state(config: &AppConfig) -> AppResult<AppState> {
-    let db_pool = init_db_pool(&config.db).await?;
-    let redis_client = init_valkey_connection(&config.valkey).await?;
-    let jwt_service = JwtService::new(config.jwt.clone());
-
+pub async fn build_state(
+    db_config: &DatabaseConfig,
+    valkey_config: &ValkeyConfig,
+    jwt_config: JwtConfig,
+) -> AppResult<AppState> {
+    let redis_client = init_valkey_connection(valkey_config).await?;
     let token_store = Arc::new(RedisTokenStore::new(redis_client));
+
+    let db_pool = Arc::new(init_db_pool(db_config).await?);
+    let jwt_service = JwtService::new(jwt_config);
+
     let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
 
     let auth_service = Arc::new(AuthServiceImpl::new(
