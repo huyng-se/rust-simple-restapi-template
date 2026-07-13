@@ -29,7 +29,6 @@ use tower_http::{
     timeout::TimeoutLayer,
 };
 
-// TODO: fix clone later
 pub fn build_router(state: AppState, config: &AppConfig) -> Router {
     let public_routes = Router::new()
         .nest("/api/v1", HealthModule::routes())
@@ -88,11 +87,10 @@ fn build_cors_layer(config: &AppConfig) -> CorsLayer {
 pub async fn build_state(config: &AppConfig) -> AppResult<AppState> {
     let db_pool = init_db_pool(&config.db).await?;
     let redis_client = init_valkey_connection(&config.valkey).await?;
-
     let jwt_service = JwtService::new(config.jwt.clone());
 
     let token_store = Arc::new(RedisTokenStore::new(redis_client));
-    let user_repo = Arc::new(DbUserRepository::new(db_pool.clone())); // TODO: fix clone later
+    let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
 
     let auth_service = Arc::new(AuthServiceImpl::new(
         user_repo.clone(),
