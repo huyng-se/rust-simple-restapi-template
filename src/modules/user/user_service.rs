@@ -5,7 +5,10 @@ use async_trait::async_trait;
 use crate::{
     core::error::{AppError, AppResult},
     modules::user::{
-        user_domain::{CreateUserRequest, NewUserPayload, UserResponse, UserRole, UserStatus},
+        user_domain::{
+            CreateUserRequest, NewUserPayload, UpdateUserPayload, UpdateUserRequest, UserResponse,
+            UserRole, UserStatus,
+        },
         user_repository::UserRepository,
     },
 };
@@ -13,6 +16,7 @@ use crate::{
 #[async_trait]
 pub trait UserService {
     async fn create(&self, req: CreateUserRequest) -> AppResult<UserResponse>;
+    async fn update(&self, id: i64, req: UpdateUserRequest) -> AppResult<UserResponse>;
     async fn get_by_id(&self, id: i64) -> AppResult<Option<UserResponse>>;
     async fn get_by_email(&self, email: &str) -> AppResult<Option<UserResponse>>;
     async fn get_list(&self) -> AppResult<Vec<UserResponse>>;
@@ -41,6 +45,23 @@ impl UserService for UserServiceImpl {
         };
         let user = self.repo.create(new_user).await?;
 
+        Ok(UserResponse::from(user))
+    }
+
+    async fn update(&self, id: i64, req: UpdateUserRequest) -> AppResult<UserResponse> {
+        if req.email.is_none() && req.name.is_none() {
+            return Err(AppError::Validation(
+                "at least one field is required".to_string(),
+            ));
+        }
+
+        let payload = UpdateUserPayload {
+            email: req.email.map(|email| email.trim().to_lowercase()),
+            first_name: req.name.map(|name| name.trim().to_string()),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let user = self.repo.update(id, payload).await?;
         Ok(UserResponse::from(user))
     }
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     core::error::{self, AppResult},
     infra::diesel::connection::DbPool,
-    modules::user::user_domain::{NewUserPayload, UserModel},
+    modules::user::user_domain::{NewUserPayload, UpdateUserPayload, UserModel},
     schema::users,
 };
 use async_trait::async_trait;
@@ -13,6 +13,7 @@ use diesel_async::RunQueryDsl;
 #[async_trait]
 pub trait UserRepository {
     async fn create(&self, payload: NewUserPayload) -> AppResult<UserModel>;
+    async fn update(&self, id: i64, payload: UpdateUserPayload) -> AppResult<UserModel>;
     async fn find_by_id(&self, id: i64) -> AppResult<Option<UserModel>>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<UserModel>>;
     async fn list(&self) -> AppResult<Vec<UserModel>>;
@@ -49,6 +50,29 @@ impl UserRepository for DbUserRepository {
         Ok(created)
     }
 
+    async fn update(&self, user_id: i64, payload: UpdateUserPayload) -> AppResult<UserModel> {
+        let mut conn = self.db_pool.get().await.map_err(|err| {
+            tracing::error!(error = %err, "failed to get database connection for user update");
+            err
+        })?;
+
+        let updated = diesel::update(
+            users::table
+                .filter(users::id.eq(user_id))
+                .filter(users::deleted_at.is_null()),
+        )
+        .set(payload)
+        .returning(UserModel::as_returning())
+        .get_result::<UserModel>(&mut conn)
+        .await
+        .map_err(|err| {
+            tracing::error!(user_id, error = %err, "failed to update user");
+            error::map_diesel_error(err)
+        })?;
+
+        Ok(updated)
+    }
+
     async fn find_by_id(&self, user_id: i64) -> AppResult<Option<UserModel>> {
         let mut conn = self.db_pool.get().await.map_err(|err| {
             tracing::error!(error = %err, "failed to get database connection for find user by id");
@@ -57,6 +81,7 @@ impl UserRepository for DbUserRepository {
 
         let result = users::table
             .filter(users::id.eq(user_id))
+            .filter(users::deleted_at.is_null())
             .select(UserModel::as_select())
             .first::<UserModel>(&mut conn)
             .await
@@ -77,6 +102,7 @@ impl UserRepository for DbUserRepository {
 
         let result = users::table
             .filter(users::email.eq(email))
+            .filter(users::deleted_at.is_null())
             .select(UserModel::as_select())
             .first::<UserModel>(&mut conn)
             .await
@@ -96,6 +122,7 @@ impl UserRepository for DbUserRepository {
         })?;
 
         let results = users::table
+            .filter(users::deleted_at.is_null())
             .select(UserModel::as_select())
             .load::<UserModel>(&mut conn)
             .await
