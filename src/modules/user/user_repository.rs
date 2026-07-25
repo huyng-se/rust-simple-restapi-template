@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     core::error::{self, AppResult},
     infra::diesel::connection::DbPool,
-    modules::user::domain::{NewUserPayload, UserModel},
+    modules::user::user_domain::{NewUserPayload, UserModel},
     schema::users,
 };
 use async_trait::async_trait;

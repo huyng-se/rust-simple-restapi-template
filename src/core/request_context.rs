@@ -30,14 +30,12 @@ pub async fn request_context_middleware(mut req: Request, next: Next) -> Respons
         .unwrap_or_else(|| RequestContext::new().request_id);
 
     let ctx = RequestContext {
-        request_id: request_id.clone(),
+        request_id: request_id.to_owned(),
     };
-
     req.extensions_mut().insert(ctx);
 
     let mut res = next.run(req).await;
-
-    if let Ok(header_value) = HeaderValue::from_str(&request_id) {
+    if let Ok(header_value) = HeaderValue::from_str(&*request_id) {
         res.headers_mut().insert(&X_REQUEST_ID, header_value);
     }
 

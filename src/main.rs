@@ -13,7 +13,6 @@ use tokio::signal::{
 #[tokio::main]
 async fn main() -> AppResult<()> {
     let config = load_config()?;
-
     telemetry::init_telemetry(&config)?;
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;

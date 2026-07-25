@@ -5,6 +5,7 @@ use axum::{
 };
 use validator::Validate;
 
+use crate::infra::middleware::extractor::CredentialContext;
 use crate::{
     core::{
         app_state::AppState,
@@ -12,14 +13,11 @@ use crate::{
         response::ApiResponse,
     },
     modules::{
-        auth::{
-            domain::{
-                AuthResponse, LoginRequest, LogoutRequest, MessageResponse, RefreshTokenRequest,
-                RegisterRequest,
-            },
-            extractor::AuthContext,
+        auth::auth_domain::{
+            AuthResponse, LoginRequest, LogoutRequest, MessageResponse, RefreshTokenRequest,
+            RegisterRequest,
         },
-        user::domain::UserResponse,
+        user::user_domain::UserResponse,
     },
 };
 
@@ -85,7 +83,7 @@ pub async fn refresh(
 
 pub async fn logout(
     State(state): State<AppState>,
-    auth: AuthContext,
+    cred: CredentialContext,
     Json(req): Json<LogoutRequest>,
 ) -> AppResult<Json<ApiResponse<MessageResponse>>> {
     if req.refresh_token.trim().is_empty() {
@@ -96,7 +94,7 @@ pub async fn logout(
 
     state
         .auth_service
-        .logout(auth.access_token, req.refresh_token)
+        .logout(cred.access_token, req.refresh_token)
         .await?;
 
     Ok(Json(ApiResponse::new(MessageResponse {
@@ -106,9 +104,9 @@ pub async fn logout(
 
 pub async fn me(
     State(state): State<AppState>,
-    current_user: AuthContext,
+    cred: CredentialContext,
 ) -> AppResult<Json<ApiResponse<UserResponse>>> {
-    let user_id = current_user
+    let user_id = cred
         .user_id
         .parse::<i64>()
         .map_err(|_| AppError::Internal)?;

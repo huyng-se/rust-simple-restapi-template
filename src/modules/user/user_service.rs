@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use crate::{
     core::error::{AppError, AppResult},
     modules::user::{
-        domain::{CreateUserRequest, NewUserPayload, UserResponse},
-        repository::UserRepository,
+        user_domain::{CreateUserRequest, NewUserPayload, UserResponse, UserRole, UserStatus},
+        user_repository::UserRepository,
     },
 };
 
@@ -36,7 +36,8 @@ impl UserService for UserServiceImpl {
             password: "".to_string(),
             first_name: req.name,
             last_name: None,
-            status: "ACTIVE".to_string(),
+            status: UserStatus::Active,
+            role: UserRole::Standard,
         };
         let user = self.repo.create(new_user).await?;
 

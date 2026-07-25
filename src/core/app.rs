@@ -1,3 +1,5 @@
+use crate::common::token::JwtService;
+use crate::infra::middleware::guard::{require_admin, require_auth};
 use crate::{
     core::{
         app_state::AppState,
@@ -11,14 +13,12 @@ use crate::{
         valkey::{connection::init_valkey_connection, token_store::RedisTokenStore},
     },
     modules::{
-        auth::{
-            controller::AuthModule,
-            guard::{require_admin, require_auth},
-            service::AuthServiceImpl,
-            token::JwtService,
+        auth::{auth_controller::AuthModule, auth_service::AuthServiceImpl},
+        health::health_controller::HealthModule,
+        user::{
+            user_controller::UserModule, user_repository::DbUserRepository,
+            user_service::UserServiceImpl,
         },
-        health::controller::HealthModule,
-        user::{controller::UserModule, repository::DbUserRepository, service::UserServiceImpl},
     },
 };
 use axum::{

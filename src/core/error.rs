@@ -125,21 +125,21 @@ impl AppError {
                 if message.trim().is_empty() {
                     "Resource not found.".to_string()
                 } else {
-                    message.clone()
+                    message.to_string()
                 }
             },
             AppError::Conflict(message) => {
                 if message.trim().is_empty() {
                     "Resource already exists.".to_string()
                 } else {
-                    message.clone()
+                    message.to_string()
                 }
             },
             AppError::Validation(message) => {
                 if message.trim().is_empty() {
                     "Invalid request data.".to_string()
                 } else {
-                    message.clone()
+                    message.to_string()
                 }
             },
             AppError::Database(_)
