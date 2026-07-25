@@ -32,6 +32,14 @@ pub struct NewUserPayload {
     pub role: UserRole,
 }
 
+#[derive(Debug, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UpdateUserPayload {
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, diesel_derive_enum::DbEnum)]
 #[ExistingTypePath = "crate::schema::sql_types::UserRole"]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
@@ -57,6 +65,14 @@ pub struct CreateUserRequest {
     pub email: String,
     #[validate(length(min = 1, max = 100))]
     pub name: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdateUserRequest {
+    #[validate(email)]
+    pub email: Option<String>,
+    #[validate(length(min = 1, max = 100))]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

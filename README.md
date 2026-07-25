@@ -67,7 +67,7 @@ src/
 | Route group | Modules | Middleware |
 |---|---|---|
 | Public | health, auth register/login/refresh | Request context, logging, CORS, timeout, body limit, compression |
-| Authenticated | auth me/logout, user lookup | Public middleware plus `require_auth` |
+| Authenticated | auth me/logout, user lookup/update | Public middleware plus `require_auth` |
 | Admin | user administration | Public middleware plus `require_admin` |
 
 Application dependencies are constructed once in `build_state` and stored in `AppState`:
@@ -122,6 +122,7 @@ Error responses use:
 | `GET` | `/me` | Bearer token | auth | Return the current authenticated user |
 | `POST` | `/logout` | Bearer token | auth | Blacklist the current access token and revoke the refresh token |
 | `GET` | `/users/{id}` | Bearer token | user | Return a user by id |
+| `PATCH` | `/users/{id}` | Bearer token | user | Update the authenticated user's email and/or name |
 | `GET` | `/admin/users` | Admin bearer token | user | Return all users |
 
 Request examples are available in:

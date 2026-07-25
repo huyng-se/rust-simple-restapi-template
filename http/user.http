@@ -23,6 +23,25 @@ Authorization: Bearer {{adminAccessToken}}
 GET {{baseUrl}}/users/{{userId}}
 Accept: application/json
 
+### Update own user
+PATCH {{baseUrl}}/users/{{userId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "email": "updated@example.com",
+  "name": "Updated name"
+}
+
+### Update another user - forbidden
+PATCH {{baseUrl}}/users/{{missingUserId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Should fail"
+}
+
 ### List users - non-admin token
 GET {{baseUrl}}/admin/users
 Accept: application/json
