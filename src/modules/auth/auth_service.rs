@@ -1,15 +1,13 @@
+use crate::common::password;
+use crate::common::token::{Claims, JwtService};
 use crate::{
     core::error::{AppError, AppResult},
     infra::valkey::token_store::TokenStore,
     modules::{
-        auth::{
-            domain::{AuthResponse, LoginRequest, RegisterRequest},
-            password,
-            token::{Claims, JwtService},
-        },
+        auth::auth_domain::{AuthResponse, LoginRequest, RegisterRequest},
         user::{
-            domain::{NewUserPayload, UserResponse},
-            repository::UserRepository,
+            user_domain::{NewUserPayload, UserResponse, UserRole, UserStatus},
+            user_repository::UserRepository,
         },
     },
 };
@@ -63,8 +61,8 @@ impl AuthServiceImpl {
         claims.exp as i64 - now
     }
 
-    fn ensure_user_active(status: &str) -> Result<(), AppError> {
-        if status != "ACTIVE" {
+    fn ensure_user_active(status: UserStatus) -> Result<(), AppError> {
+        if status != UserStatus::Active {
             return Err(AppError::Forbidden);
         }
 
@@ -88,7 +86,8 @@ impl AuthService for AuthServiceImpl {
             password: password_hash,
             first_name: req.name,
             last_name: None,
-            status: "ACTIVE".to_string(),
+            status: UserStatus::Active,
+            role: UserRole::Standard,
         };
 
         let user = self.user_repo.create(new_user).await?;
@@ -122,7 +121,7 @@ impl AuthService for AuthServiceImpl {
             .await?
             .ok_or(AppError::Unauthorized)?;
 
-        Self::ensure_user_active(&user.status)?;
+        Self::ensure_user_active(user.status)?;
 
         let password_valid = password::verify_password(&req.password, &user.password)?;
 
@@ -172,7 +171,7 @@ impl AuthService for AuthServiceImpl {
             .await?
             .ok_or(AppError::Unauthorized)?;
 
-        Self::ensure_user_active(&user.status)?;
+        Self::ensure_user_active(user.status)?;
 
         let (new_access_token, _new_access_jti) = self
             .jwt_service
@@ -225,7 +224,7 @@ impl AuthService for AuthServiceImpl {
             .await?
             .ok_or_else(|| AppError::NotFound("user not found".to_string()))?;
 
-        Self::ensure_user_active(&user.status)?;
+        Self::ensure_user_active(user.status)?;
 
         Ok(UserResponse::from(user))
     }
@@ -250,7 +249,7 @@ impl AuthService for AuthServiceImpl {
             .await?
             .ok_or(AppError::Unauthorized)?;
 
-        Self::ensure_user_active(&user.status)?;
+        Self::ensure_user_active(user.status)?;
 
         Ok(claims)
     }

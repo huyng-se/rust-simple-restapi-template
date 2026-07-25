@@ -1,6 +1,6 @@
 use crate::{
     infra::diesel::connection::DbPool,
-    modules::{auth::service::AuthService, user::service::UserService},
+    modules::{auth::auth_service::AuthService, user::user_service::UserService},
 };
 use std::sync::Arc;
 

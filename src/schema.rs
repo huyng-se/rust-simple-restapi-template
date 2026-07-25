@@ -1,5 +1,15 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::sql_types::SqlType, diesel::query_builder::QueryId)]
+    #[diesel(postgres_type(name = "user_role"))]
+    pub struct UserRole;
+
+    #[derive(diesel::sql_types::SqlType, diesel::query_builder::QueryId)]
+    #[diesel(postgres_type(name = "user_status"))]
+    pub struct UserStatus;
+}
+
 diesel::table! {
     flyway_schema_history (installed_rank) {
         installed_rank -> Int4,
@@ -28,7 +38,8 @@ diesel::table! {
         password -> Text,
         first_name -> Text,
         last_name -> Nullable<Text>,
-        status -> Text,
+        role -> crate::schema::sql_types::UserRole,
+        status -> crate::schema::sql_types::UserStatus,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,

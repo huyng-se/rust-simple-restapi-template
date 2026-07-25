@@ -5,7 +5,8 @@ use crate::core::error::{AppError, AppResult};
 
 #[async_trait]
 pub trait TokenStore {
-    async fn save_refresh_token(&self, user_id: i64, token_id: &str, ttl_sec: i64) -> AppResult<()>;
+    async fn save_refresh_token(&self, user_id: i64, token_id: &str, ttl_sec: i64)
+    -> AppResult<()>;
     async fn is_refresh_token_valid(&self, user_id: i64, token_id: &str) -> AppResult<bool>;
     async fn revoke_refresh_token(&self, user_id: i64, token_id: &str) -> AppResult<()>;
     async fn blacklist_access_token(&self, token_id: &str, ttl_sec: i64) -> AppResult<()>;

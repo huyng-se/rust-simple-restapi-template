@@ -6,7 +6,7 @@ use axum::{
 
 use crate::{
     core::{app_state::AppState, error::AppResult, response::ApiResponse},
-    modules::user::domain::UserResponse,
+    modules::user::user_domain::UserResponse,
 };
 
 pub struct UserModule;

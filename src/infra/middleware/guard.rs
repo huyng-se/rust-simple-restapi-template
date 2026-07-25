@@ -1,10 +1,8 @@
-use crate::{
-    core::{
-        app_state::AppState,
-        error::{AppError, AppResult},
-    },
-    modules::auth::extractor::AuthContext,
+use crate::core::{
+    app_state::AppState,
+    error::{AppError, AppResult},
 };
+use crate::infra::middleware::extractor::CredentialContext;
 use axum::{
     extract::{Request, State},
     http::{
@@ -28,7 +26,7 @@ pub async fn require_auth(
         .parse::<i64>()
         .map_err(|_| AppError::Unauthorized)?;
 
-    req.extensions_mut().insert(AuthContext {
+    req.extensions_mut().insert(CredentialContext {
         user_id: user_id.to_string(),
         role: claims.role,
         access_token: token,
@@ -55,7 +53,7 @@ pub async fn require_admin(
         .parse::<i64>()
         .map_err(|_| AppError::Unauthorized)?;
 
-    req.extensions_mut().insert(AuthContext {
+    req.extensions_mut().insert(CredentialContext {
         user_id: user_id.to_string(),
         role: claims.role,
         access_token: token,

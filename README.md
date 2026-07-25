@@ -185,6 +185,12 @@ Run migrations:
 docker compose run --rm migrate
 ```
 
+The migration job runs Flyway against PostgreSQL and applies the SQL files in
+`migrations/`. Flyway records applied migrations in `flyway_schema_history`.
+Migration failures are rolled back by PostgreSQL/Flyway when the migration is
+running transactionally. Versioned migrations that have already been applied
+should not be edited; add a new `V###__description.sql` migration instead.
+
 Start the API locally:
 
 ```sh
@@ -232,7 +238,8 @@ The API container listens on `8089` by default:
 http://localhost:8089/api/v1
 ```
 
-The Compose file defaults the API container to `APP_ENV=production`. Provide production-grade JWT secrets before running in production mode, or run with `APP_ENV=local` for local Compose workflows.
+The Compose file defaults the API container to `APP_ENV=production`. Provide production-grade JWT secrets before running in production mode,
+or run with `APP_ENV=local` for local Compose workflows.
 
 For local Compose experiments, run the API with local-mode configuration:
 
@@ -255,9 +262,25 @@ The `users` table stores:
 - hashed `password`
 - `first_name`
 - optional `last_name`
-- constrained `status`
+- PostgreSQL `user_role` enum mapped to Rust `UserRole` with `SUPER_ADMIN`, `ADMIN`, and `STANDARD` values; defaults to `STANDARD`
+- PostgreSQL `user_status` enum mapped to Rust `UserStatus` with `ACTIVE` and `DISABLED` values; defaults to `ACTIVE`
 - `created_at` and `updated_at`
 - optional `deleted_at` for soft deletion
+
+The Diesel domain models use typed enums for database reads and inserts:
+
+```rust
+pub enum UserRole {
+    SuperAdmin,
+    Admin,
+    Standard,
+}
+
+pub enum UserStatus {
+    Active,
+    Disabled,
+}
+```
 
 Regenerate Diesel schema after changing migrations:
 
